@@ -9,15 +9,32 @@ happens, and reports on it.
 
 ## Run it
 
+This is not a hosted site. It runs on your own machine, and the address below
+only answers once you have started the server yourself.
+
+**Windows (PowerShell)**
+
+```powershell
+pip install -r requirements-training.txt
+
+$env:MANAGER_PASSWORD = "choose-one"
+python -m training.seed --sample          # 17 decks + a manager + demo data
+python -m uvicorn training.main:app --reload --port 8000
+```
+
+**macOS / Linux**
+
 ```bash
 pip install -r requirements-training.txt
 
-MANAGER_PASSWORD='choose-one' python -m training.seed --sample   # 17 decks + a manager + demo data
-uvicorn training.main:app --reload --port 8000
+MANAGER_PASSWORD='choose-one' python -m training.seed --sample
+python -m uvicorn training.main:app --reload --port 8000
 ```
 
-Open http://127.0.0.1:8000 — you land on the training list as a rep, or the
-dashboard as a manager.
+Leave that last command running — it is the server. When it prints
+`Application startup complete`, open `127.0.0.1:8000` in a browser and sign in
+with the manager email and the password you set. Closing the terminal stops the
+server and the address stops answering.
 
 Drop `--sample` for an empty system: you still get the 17 decks and a manager
 account, and every page shows its real empty state until someone answers
