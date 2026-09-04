@@ -1,0 +1,6 @@
+# Manager dashboard + tracking backend (separate from the CrewAI app's requirements.txt)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlalchemy>=2.0
+httpx>=0.27
+pydantic[email]>=2.7

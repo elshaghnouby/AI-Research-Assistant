@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in · Sales Training</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/base.css">
+<style>
+  .wrap{min-height:100vh;display:grid;place-items:center;padding:24px}
+  .box{width:100%;max-width:400px}
+  .brand{margin-bottom:24px}
+  .brand b{display:block;font-size:15px;font-weight:600}
+  .brand span{font-size:13px;color:var(--ink-3)}
+  form{display:flex;flex-direction:column;gap:14px;padding:22px}
+  .row{display:flex;gap:12px}
+  .row>div{flex:1}
+  .switch{
+    display:flex;gap:4px;padding:3px;background:var(--surface-2);
+    border-radius:8px;margin-bottom:4px;
+  }
+  .switch button{
+    flex:1;padding:7px;border:0;border-radius:6px;background:none;
+    color:var(--ink-2);font-size:13px;font-weight:600;
+  }
+  .switch button[aria-pressed="true"]{background:var(--surface);color:var(--ink);
+    box-shadow:0 1px 2px rgba(16,20,28,.10)}
+  .hint{font-size:12px;color:var(--ink-3);margin:0}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="box">
+  <div class="brand"><b>Baron Cabot</b><span>Sales Training</span></div>
+  <div class="card">
+    <form id="form" novalidate>
+      <div class="switch">
+        <button type="button" data-mode="login" aria-pressed="true">Sign in</button>
+        <button type="button" data-mode="register" aria-pressed="false">Create account</button>
+      </div>
+      <div id="error" class="err" hidden></div>
+      <div class="reg-only" hidden>
+        <div class="row">
+          <div><label for="name">Full name</label><input id="name" autocomplete="name"></div>
+          <div><label for="office">Office</label><input id="office" autocomplete="off" placeholder="London"></div>
+        </div>
+      </div>
+      <div><label for="email">Work email</label>
+        <input id="email" type="email" autocomplete="email" required></div>
+      <div><label for="password">Password</label>
+        <input id="password" type="password" autocomplete="current-password" required>
+        <p class="hint reg-only" hidden style="margin-top:6px">At least 8 characters.</p></div>
+      <button class="btn" id="submit" type="submit">Sign in</button>
+    </form>
+  </div>
+</div></div>
+<script>
+const $ = s => document.querySelector(s);
+let mode = 'login';
+const next = new URLSearchParams(location.search).get('next') || '/';
+
+document.querySelectorAll('.switch button').forEach(b =>
+  b.addEventListener('click', () => {
+    mode = b.dataset.mode;
+    document.querySelectorAll('.switch button').forEach(x =>
+      x.setAttribute('aria-pressed', String(x.dataset.mode === mode)));
+    document.querySelectorAll('.reg-only').forEach(x => x.hidden = mode !== 'register');
+    $('#password').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
+    $('#submit').textContent = mode === 'register' ? 'Create account' : 'Sign in';
+    $('#error').hidden = true;
+  }));
+
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = $('#error'), btn = $('#submit');
+  err.hidden = true; btn.disabled = true;
+  const body = mode === 'register'
+    ? { name:$('#name').value, office:$('#office').value,
+        email:$('#email').value, password:$('#password').value }
+    : { email:$('#email').value, password:$('#password').value };
+  try {
+    const res = await fetch('/auth/' + mode, {
+      method:'POST', credentials:'same-origin',
+      headers:{'content-type':'application/json'}, body:JSON.stringify(body)
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const detail = data.detail;
+      err.textContent = typeof detail === 'string' ? detail
+        : Array.isArray(detail) ? detail.map(d => d.msg).join('. ')
+        : 'Something went wrong. Try again.';
+      err.hidden = false; btn.disabled = false; return;
+    }
+    location.href = data.role === 'manager' ? '/dashboard' : next;
+  } catch {
+    err.textContent = 'Could not reach the server. Check your connection and try again.';
+    err.hidden = false; btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

@@ -307,10 +307,16 @@ select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
     <div class="topbar">
       <div class="crumbs" id="crumbs"></div>
       <div class="spacer"></div>
-      <span class="sample-badge">Sample data</span>
+      <span class="sample-badge" id="sampleBadge" hidden>Sample data</span>
       <button class="theme-btn" id="themeBtn" type="button">Dark</button>
+      <a class="theme-btn" href="/api/../" id="homeLink">Trainings</a>
+      <button class="theme-btn" id="signOut" type="button">Sign out</button>
     </div>
-    <div class="page" id="page"></div>
+    <div class="page" id="page">
+      <div class="page-head"><div><h1>Overview</h1>
+        <p class="sub">Loading the team\u2019s training activity\u2026</p></div></div>
+      <div class="kpis"><div class="kpi"><span class="k">&nbsp;</span><span class="v num" style="color:var(--bar)">\u2014</span><span class="m">&nbsp;</span></div><div class="kpi"><span class="k">&nbsp;</span><span class="v num" style="color:var(--bar)">\u2014</span><span class="m">&nbsp;</span></div><div class="kpi"><span class="k">&nbsp;</span><span class="v num" style="color:var(--bar)">\u2014</span><span class="m">&nbsp;</span></div><div class="kpi"><span class="k">&nbsp;</span><span class="v num" style="color:var(--bar)">\u2014</span><span class="m">&nbsp;</span></div><div class="kpi"><span class="k">&nbsp;</span><span class="v num" style="color:var(--bar)">\u2014</span><span class="m">&nbsp;</span></div></div>
+    </div>
   </div>
 </div>
 <div class="scrim" id="scrim" hidden></div>
@@ -326,184 +332,56 @@ select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
    ========================================================================== */
 
 /* ---------- thresholds: defined once, used everywhere ---------- */
-const T = { good: 80, warn: 60, minN: 5 };
+let T = { good: 80, warn: 60, minN: 5 };   // overridden by /api/dashboard
 const band = p => p >= T.good ? 'good' : p >= T.warn ? 'warn' : 'crit';
 const bandLabel = { good:'On track', warn:'Needs attention', crit:'Critical' };
 
-/* ---------- seeded RNG so the prototype is stable across reloads ---------- */
-function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0;
-  let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t;
-  return ((t^t>>>14)>>>0)/4294967296; }; }
+/* ---------- data source ----------------------------------------------------
+   Everything below this block is unchanged from the prototype. Only the SOURCE
+   of these arrays moved: they now come from /api/dashboard, which serves the
+   event log out of the database. The aggregation and the charts never knew the
+   difference — that was the point of shaping the prototype this way.
+   -------------------------------------------------------------------------- */
+let SKILLS = {}, QUESTIONS = [], QBY = {}, TRAININGS = [], TBY = {},
+    STAFF = [], SBY = {}, attempts = [], answers = [];
+const WEEKS = 10, WEEK = 6048e5;
+let NOW = Date.now();
 
-/* ---------- skills ---------- */
-const SKILLS = {
-  obj:  'Objection Handling',
-  close:'Closing',
-  price:'Pricing & Payment Plans',
-  qual: 'Qualification',
-  fu:   'Follow-up',
-  pk:   'Product Knowledge',
-  comp: 'Compliance'
-};
+function loadData(p){
+  T = { ...T, ...p.meta.thresholds };
+  SKILLS = { ...p.meta.skills, untagged: 'Untagged' };
+  NOW = p.meta.generatedAt || Date.now();
 
-/* ---------- question bank (property sales) ---------- */
-const QUESTIONS = [
- {id:'Q01',skill:'obj',base:.52,t:'A client says the service charge is higher than at a competing development. What is the strongest first response?',
-  o:['Offer a discount on the purchase price','Ask what they are comparing it to, then break down what the charge covers','Explain that every development has a service charge','Move them on to a different unit'],c:1},
- {id:'Q02',skill:'obj',base:.61,t:'"I want to think about it." What does this objection most often actually mean?',
-  o:['The client is not interested','A concern has not been surfaced yet','The price is too high','They need to speak to a partner'],c:1},
- {id:'Q03',skill:'obj',base:.44,t:'A buyer objects that the completion date is too far out. Which response builds the most value?',
-  o:['Agree that it is a long wait','Offer an alternative development','Frame the build period against the payment plan and the price held to completion','Ask them to reserve anyway'],c:2},
- {id:'Q04',skill:'close',base:.70,t:'Which of these is a legitimate assumptive close?',
-  o:['"Shall I hold Apartment 402 for you on a 48-hour reservation?"','"This is the last one at this price."','"Do you want to buy it?"','"Let me know when you decide."'],c:0},
- {id:'Q05',skill:'close',base:.58,t:'When should you first attempt a trial close?',
-  o:['Only after the full presentation','As soon as the client gives a buying signal','At the very start of the meeting','Only on a second viewing'],c:1},
- {id:'Q06',skill:'close',base:.49,t:'A client is ready but hesitates at the reservation fee. Best action?',
-  o:['Waive the fee','Restate what the fee secures and how it is treated under the reservation terms','End the meeting and follow up next week','Escalate to the sales manager immediately'],c:1},
- {id:'Q07',skill:'pk',base:.93,t:'What does "off-plan" mean?',
-  o:['A property sold without floor plans','A property purchased before construction is complete','A property outside the masterplan','A resale property'],c:1},
- {id:'Q08',skill:'pk',base:.82,t:'In a UK leasehold purchase, what is ground rent?',
-  o:['A charge for building maintenance','A periodic payment to the freeholder for the land','A local authority tax','A one-off cost at completion'],c:1},
- {id:'Q09',skill:'pk',base:.88,t:'What does the service charge typically cover?',
-  o:["The buyer's mortgage interest",'Communal maintenance, building insurance and shared facilities','Stamp duty',"The developer's profit margin"],c:1},
- {id:'Q10',skill:'pk',base:.47,t:'What is the Dubai Land Department transfer fee on a property purchase?',
-  o:['2%','4%','5%','7%'],c:1},
- {id:'Q11',skill:'pk',base:.55,t:'What is an Oqood certificate?',
-  o:['A tenancy contract','The interim registration of an off-plan sale with the DLD','A mortgage pre-approval','A snagging report'],c:1},
- {id:'Q12',skill:'price',base:.78,t:'A client asks why two units of identical size are priced differently. Which factor is most likely?',
-  o:["The developer's pricing mood",'Floor level, aspect and outlook','The colour scheme','The unit number'],c:1},
- {id:'Q13',skill:'price',base:.62,t:'On a 60/40 payment plan, what does the 40 represent?',
-  o:['A 40% deposit','40% payable on completion and handover','A 40% discount','40 monthly instalments'],c:1},
- {id:'Q14',skill:'price',base:.53,t:'Which of these is NOT part of the buyer’s upfront cost on a UK new-build purchase?',
-  o:['Reservation fee','SDLT (stamp duty)','Legal fees','The year-five service charge'],c:3},
- {id:'Q15',skill:'qual',base:.74,t:"Which question best qualifies a buyer's motivation?",
-  o:['"What is your budget?"','"Are you buying to live in or to let?"','"Do you like the kitchen?"','"When can you visit?"'],c:1},
- {id:'Q16',skill:'qual',base:.66,t:'A lead will not disclose their budget. Best next step?',
-  o:['Show only the cheapest units','End the call','Present two price points and read the reaction','Insist on a figure before continuing'],c:2},
- {id:'Q17',skill:'qual',base:.71,t:'Which is the strongest buying signal?',
-  o:['"It looks nice."','"How soon would I need to pay the second instalment?"','"Send me the brochure."','"I will speak to my wife."'],c:1},
- {id:'Q18',skill:'comp',base:.80,t:'A client asks you to guarantee a rental yield. What do you do?',
-  o:['Give your best estimate as a guarantee','State only figures you can evidence and never guarantee future returns','Quote the highest yield the development has achieved',"Refer to a competitor's published numbers"],c:1},
- {id:'Q19',skill:'comp',base:.77,t:'When must the reservation terms be provided to the buyer?',
-  o:['After payment is taken','Before the reservation fee is taken','At legal completion','Only if the buyer asks'],c:1},
- {id:'Q20',skill:'comp',base:.86,t:'A buyer asks whether they should take a mortgage. You should:',
-  o:['Recommend the best product you know','Refer them to a regulated adviser','Give your personal opinion','Compare current rates for them'],c:1},
- {id:'Q21',skill:'fu',base:.72,t:'A viewing ended with no decision. When is the best follow-up?',
-  o:['Within 24 hours, with a specific next step','After a week, so they have space','Only if they call you','Immediately and repeatedly'],c:0},
- {id:'Q22',skill:'fu',base:.68,t:'What makes a follow-up message effective?',
-  o:['Repeating the full presentation','Referencing a specific concern they raised and answering it','Sending the price list again','Asking "any update?"'],c:1},
- {id:'Q23',skill:'obj',base:.41,t:'"Your competitor is offering a better payment plan." Best response?',
-  o:['Match the plan immediately','Point out weaknesses in the competitor','Compare total cost, delivery record and specification, not the plan alone','Explain that plans cannot be changed'],c:2},
- {id:'Q24',skill:'close',base:.84,t:'The client says yes verbally. What actually secures the sale?',
-  o:['A handshake and a diary note','Completing the reservation form and taking the fee','Emailing a summary that evening','Telling your manager'],c:1},
- {id:'Q25',skill:'pk',base:.87,t:'What is a snagging list?',
-  o:['A list of unsold units','A record of defects found before handover for the developer to fix','A list of interested buyers','The construction programme'],c:1},
- {id:'Q26',skill:'qual',base:.69,t:'Why does cash buyer versus mortgage buyer matter at qualification?',
-  o:['Cash buyers always pay more','It changes the timeline, the payment plan fit and the evidence needed','It makes no practical difference','Mortgage buyers are less serious'],c:1},
- {id:'Q27',skill:'price',base:.81,t:'What is SDLT?',
-  o:['A service charge band','Stamp Duty Land Tax on UK property purchases','A developer levy','A leasehold covenant'],c:1},
- {id:'Q28',skill:'fu',base:.75,t:'A buyer goes quiet after reserving. First action?',
-  o:['Cancel the reservation','Contact them with the next milestone and its deadline','Wait for them to make contact','Speak only to their solicitor'],c:1}
-];
-const QBY = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
+  STAFF = p.staff.map(s => ({ ...s }));
+  SBY = Object.fromEntries(STAFF.map(s => [s.id, s]));
 
-/* ---------- the 17 trainings ---------- */
-const TRAININGS = [
- {id:'t01',cat:'Handbook',   title:'Managers Handbook',        sub:'Baron Cabot', slug:'baron-cabot-managers-handbook-2'},
- {id:'t02',cat:'Training',   title:'London Zones 1–3',         sub:'Territory',   slug:'london-zones1-3-training-deck-7'},
- {id:'t03',cat:'Training',   title:'London Zones 4–6',         sub:'Territory',   slug:'london-zones4-6-training-deck-2'},
- {id:'t04',cat:'Training',   title:'Manchester',               sub:'Territory',   slug:'manchester-training-deck'},
- {id:'t05',cat:'Training',   title:'Birmingham',               sub:'Territory',   slug:'birmingham-training-deck-1'},
- {id:'t06',cat:'Training',   title:'Leicester',                sub:'Territory',   slug:'leicester-training-deck-1'},
- {id:'t07',cat:'Training',   title:'Liverpool',                sub:'Territory',   slug:'liverpool-training-deck'},
- {id:'t08',cat:'Training',   title:'Dubai',                    sub:'Territory',   slug:'dubai-training-deck-1'},
- {id:'t09',cat:'Training',   title:'Phuket',                   sub:'Territory',   slug:'phuket-training-deck'},
- {id:'t10',cat:'Sales',      title:'The Hilight',              sub:'Development',  slug:'the-hilight-sales-slides-3'},
- {id:'t11',cat:'Sales',      title:'Paper Yard',               sub:'Development',  slug:'paper-yard-sales-slides'},
- {id:'t12',cat:'Sales',      title:'Waterhouse Gardens',       sub:'Development',  slug:'waterhouse-gardens-sales-slides'},
- {id:'t13',cat:'Sales',      title:'Furness Quay',             sub:'Development',  slug:'furness-quay-sales-slides'},
- {id:'t14',cat:'Sales',      title:'Vivere',                   sub:'Development',  slug:'vivere-sales-slides'},
- {id:'t15',cat:'Sales',      title:'Velocity',                 sub:'Development',  slug:'velocity-sales-slides'},
- {id:'t16',cat:'Sales',      title:'Viadux Penthouses',        sub:'Development',  slug:'viadux-penthouses-sales-slides-1'},
- {id:'t17',cat:'Sales',      title:'W Residences',             sub:'Development',  slug:'w-residences-sales-slides'}
-];
-const TBY = Object.fromEntries(TRAININGS.map(t => [t.id, t]));
+  TRAININGS = p.trainings.map(t => ({ ...t, qs: [] }));
+  TBY = Object.fromEntries(TRAININGS.map(t => [t.id, t]));
 
-/* assign 8 questions per training, deterministically, weighted to the deck's focus */
-(function assign(){
-  const focus = {
-    Handbook:['comp','close','obj','qual'],
-    Training:['qual','obj','pk','fu','comp'],
-    Sales:   ['pk','price','obj','close']
-  };
-  TRAININGS.forEach((t,i) => {
-    const r = rng(9000 + i * 37);
-    const want = focus[t.cat];
-    const pool = QUESTIONS.slice().sort((a,b) => {
-      const av = (want.includes(a.skill) ? 0 : 1) + r() * .6;
-      const bv = (want.includes(b.skill) ? 0 : 1) + r() * .6;
-      return av - bv;
-    });
-    t.qs = pool.slice(0, 8).map(q => q.id).sort();
+  QUESTIONS = p.questions.map(q => ({
+    id: q.ref, skill: q.skill || 'untagged', t: q.text || q.ref,
+    o: q.options && q.options.length ? q.options : [], c: q.correct
+  }));
+  QBY = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
+
+  attempts = p.attempts;
+  answers  = p.answers;
+
+  /* Slot order per deck, read back off the log: index -> question ref. */
+  const slots = {};
+  answers.forEach(a => { (slots[a.training] ||= {})[a.idx] = a.q; });
+  p.questions.forEach(q => (q.trainings || []).forEach(tid => {
+    if (TBY[tid] && !TBY[tid].qs.includes(q.ref)) TBY[tid].qs.push(q.ref);
+  }));
+  Object.entries(slots).forEach(([tid, m]) => {
+    if (!TBY[tid]) return;
+    TBY[tid].qs = Object.keys(m).sort((a,b) => a - b).map(i => m[i]);
   });
-})();
-
-/* ---------- 20 staff ---------- */
-const NAMES = [
- ['Aisha Rahman','London'],['Tom Bradshaw','Manchester'],['Priya Nair','London'],
- ['Callum Reid','Manchester'],['Fatima Al Suwaidi','Dubai'],['James Okafor','Birmingham'],
- ['Sofia Marchetti','London'],['Hassan Darwish','Dubai'],['Ellie Thompson','Liverpool'],['Daniel Kovacs','Leicester'],
- ['Noor Haddad','Dubai'],['Ryan Whitfield','Manchester'],['Chloe Bennett','London'],
- ['Omar Farouk','Birmingham'],['Grace Adeyemi','London'],['Liam Doherty','Liverpool'],
- ['Zainab Iqbal','Leicester'],['Marcus Bell','Manchester'],['Hana Suzuki','London'],
- ['Peter Novak','Birmingham']
-].map(([n,o]) => [n.replace(/\s+/g,' ').trim(), o]);
-
-const STAFF = NAMES.map(([name, office], i) => {
-  const r = rng(400 + i * 13);
-  return {
-    id: 's' + String(i + 1).padStart(2,'0'),
-    name, office,
-    ability: (r() - .45) * .26,          // -0.12 .. +0.14 accuracy modifier
-    engagement: .52 + r() * .58          // drives how many trainings they finish
-  };
-});
-const SBY = Object.fromEntries(STAFF.map(s => [s.id, s]));
-
-/* ---------- generate the event log ---------- */
-const attempts = [];   // one row per staff x training that was opened
-const answers  = [];   // one row per question answered — the tracker payload
-const WEEKS = 10, NOW = Date.now(), WEEK = 6048e5;
-
-STAFF.forEach((s, si) => {
-  TRAININGS.forEach((t, ti) => {
-    const r = rng(si * 977 + ti * 131 + 7);
-    const roll = r();
-    if (roll > s.engagement + .22) return;              // never opened
-    const complete = roll < s.engagement;
-    const qs = complete ? t.qs : t.qs.slice(0, 2 + Math.floor(r() * 4));
-    const startedAt = NOW - Math.floor(r() * WEEKS * WEEK);
-    let ms = 0;
-    qs.forEach(qid => {
-      const q = QBY[qid];
-      const p = Math.max(.08, Math.min(.97, q.base + s.ability));
-      const ok = r() < p;
-      let chosen = q.c;
-      if (!ok) {                                        // pick a plausible distractor
-        const wrong = [0,1,2,3].filter(x => x !== q.c);
-        chosen = wrong[Math.floor(r() * wrong.length) % wrong.length];
-      }
-      const t_ms = 9000 + Math.floor(r() * 46000);
-      ms += t_ms;
-      answers.push({ staff:s.id, training:t.id, q:qid, chosen, ok, ms:t_ms });
-    });
-    ms += 240000 + Math.floor(r() * 420000);            // reading the slides
-    attempts.push({ staff:s.id, training:t.id, complete, startedAt, ms });
-  });
-});
+}
 
 /* ---------- aggregation (the only place numbers are produced) ---------- */
-const A = (() => {
+let A;
+function computeA(){ return (() => {
   const byStaff = {}, byTraining = {}, bySkill = {}, byQ = {};
   STAFF.forEach(s => byStaff[s.id] = { done:0, opened:0, right:0, total:0, ms:0, wrongBySkill:{} });
   TRAININGS.forEach(t => byTraining[t.id] = { started:0, done:0, right:0, total:0, ms:0, skill:{} });
@@ -583,7 +461,7 @@ const A = (() => {
       return !a ? 'none' : a.complete ? 'done' : 'part';
     }
   };
-})();
+})(); }
 
 /* ---------- formatting ---------- */
 const dur = ms => { const m = Math.round(ms / 60000);
@@ -1021,6 +899,13 @@ document.addEventListener('mouseover', e => {
   el.addEventListener('mouseleave', () => { tip.classList.remove('on'); el.removeEventListener('mousemove', move); }, { once:true });
 });
 
+/* sign out */
+document.getElementById('signOut').addEventListener('click', async () => {
+  await fetch('/auth/logout', { method:'POST', credentials:'same-origin' });
+  location.href = '/login';
+});
+document.getElementById('homeLink').setAttribute('href', '/');
+
 /* theme toggle */
 const tb = document.getElementById('themeBtn');
 const dark = () => document.documentElement.getAttribute('data-theme') === 'dark'
@@ -1032,5 +917,38 @@ tb.addEventListener('click', () => {
 });
 syncBtn();
 
-render();
+/* ---------- boot ---------- */
+async function boot(){
+  let payload;
+  try {
+    const res = await fetch('/api/dashboard', { credentials:'same-origin' });
+    if (res.status === 401 || res.status === 403) {
+      location.href = '/login?next=/dashboard'; return;
+    }
+    if (!res.ok) throw new Error('the server returned ' + res.status);
+    payload = await res.json();
+  } catch (err) {
+    document.getElementById('page').innerHTML =
+      `<div class="card"><div class="card-body"><p class="empty">
+        Could not load the dashboard — ${esc(err.message)}.<br><br>
+        <button class="chip" data-retry>Try again</button></p></div></div>`;
+    document.querySelector('[data-retry]').addEventListener('click', () => location.reload());
+    return;
+  }
+  loadData(payload);
+  A = computeA();
+  document.getElementById('sampleBadge').hidden = !payload.meta.sample;
+  if (!answers.length) {
+    document.getElementById('page').innerHTML =
+      `<div class="page-head"><div><h1>Overview</h1>
+        <p class="sub">No training activity has been recorded yet.</p></div></div>
+       <div class="card"><div class="card-body"><p class="empty">
+         Once staff start working through the decks, their answers land here and
+         every figure on this page fills in.<br><br>
+         <a class="chip" href="/">Open the training list</a></p></div></div>`;
+    return;
+  }
+  render();
+}
+boot();
 </script>

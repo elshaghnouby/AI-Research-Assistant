@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My training · Baron Cabot</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/static/base.css">
+<style>
+  .top{
+    display:flex;align-items:center;gap:14px;padding:14px 32px;
+    border-bottom:1px solid var(--line);background:var(--surface);
+  }
+  .top b{font-size:14px;font-weight:600}
+  .top span{font-size:12px;color:var(--ink-3)}
+  .spacer{flex:1}
+  main{max-width:900px;margin:0 auto;padding:32px 24px 80px}
+  .head{margin-bottom:22px}
+  .progress{
+    display:flex;align-items:center;gap:14px;padding:16px;margin-bottom:22px;
+  }
+  .progress .track{flex:1;height:8px;background:var(--bar-track);border-radius:0 4px 4px 0}
+  .progress .fill{display:block;height:8px;border-radius:0 4px 4px 0;background:var(--good)}
+  .progress b{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+  .group{margin-bottom:28px}
+  .group h2{
+    font-size:11px;font-weight:600;color:var(--ink-3);letter-spacing:.07em;
+    text-transform:uppercase;margin:0 0 10px 2px;
+  }
+  ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:1px;
+     background:var(--line-2);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  li{background:var(--surface)}
+  li a{
+    display:flex;align-items:center;gap:14px;padding:14px 16px;color:inherit;
+  }
+  li a:hover{background:var(--surface-2);text-decoration:none}
+  li .t{flex:1;min-width:0}
+  li .t b{display:block;font-weight:500;font-size:14px}
+  li .t span{font-size:12px;color:var(--ink-3)}
+  li .go{color:var(--ink-3);font-size:16px}
+  li a:hover .go{color:var(--accent)}
+  .empty{padding:40px;text-align:center;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div><b id="hello">Baron Cabot</b><span id="who"> </span></div>
+  <div class="spacer"></div>
+  <button class="btn ghost" id="signOut" type="button">Sign out</button>
+</div>
+<main id="main">
+  <div class="head"><h1>My training</h1><p class="sub">Loading your progress…</p></div>
+</main>
+<script>
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const LABEL = { complete:['good','Completed'], started:['warn','In progress'], not_started:['mute','Not started'] };
+const GROUPS = [['Handbook','Handbook'], ['Training','Territory training'], ['Sales','Development sales decks']];
+
+document.getElementById('signOut').addEventListener('click', async () => {
+  await fetch('/auth/logout', { method:'POST', credentials:'same-origin' });
+  location.href = '/login';
+});
+
+(async function () {
+  const main = document.getElementById('main');
+  let data;
+  try {
+    const res = await fetch('/api/trainings', { credentials:'same-origin' });
+    if (res.status === 401) { location.href = '/login'; return; }
+    if (!res.ok) throw new Error('the server returned ' + res.status);
+    data = await res.json();
+  } catch (err) {
+    main.innerHTML = `<div class="head"><h1>My training</h1></div>
+      <div class="card"><p class="empty">Could not load your training list — ${esc(err.message)}.<br><br>
+      <button class="btn ghost" onclick="location.reload()">Try again</button></p></div>`;
+    return;
+  }
+
+  document.getElementById('who').textContent = ' · ' + data.staff.name;
+  const done = data.trainings.filter(t => t.status === 'complete').length;
+  const pct = Math.round(done / data.trainings.length * 100);
+
+  const groups = GROUPS.map(([cat, title]) => {
+    const rows = data.trainings.filter(t => t.cat === cat);
+    if (!rows.length) return '';
+    return `<section class="group"><h2>${esc(title)} · ${rows.length}</h2><ul>${rows.map(t => {
+      const [cls, label] = LABEL[t.status];
+      return `<li><a href="${esc(t.href)}">
+        <span class="t"><b>${esc(t.title)}</b><span>${esc(t.sub)}</span></span>
+        <span class="pill ${cls}">${label}</span>
+        <span class="go" aria-hidden="true">→</span></a></li>`;
+    }).join('')}</ul></section>`;
+  }).join('');
+
+  main.innerHTML = `
+    <div class="head"><h1>My training</h1>
+      <p class="sub">${done} of ${data.trainings.length} completed. Your answers are recorded as you go.</p></div>
+    <div class="card progress">
+      <b class="num">${pct}%</b>
+      <span class="track"><span class="fill" style="width:${pct}%"></span></span>
+      <span style="font-size:13px;color:var(--ink-3)" class="num">${done}/${data.trainings.length}</span>
+    </div>${groups}`;
+})();
+</script>
+</body>
+</html>
