@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 *.db
 data/
+deck_dumps/
+deck-report.json
