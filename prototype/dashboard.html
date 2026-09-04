@@ -1,0 +1,1032 @@
+<title>Sales Training Intelligence</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#fbfbfa; --surface:#ffffff; --surface-2:#f5f6f7;
+  --ink:#14171c; --ink-2:#5b6270; --ink-3:#878e9c;
+  --line:#e4e6ea; --line-2:#eef0f2;
+  --accent:#2a78d6; --accent-soft:#eaf2fd;
+  --good:#0ca30c; --good-ink:#0a7c0a; --good-soft:#e8f6e8;
+  --warn:#fab219; --warn-ink:#8a6100; --warn-soft:#fdf3de;
+  --crit:#d03b3b; --crit-ink:#b32d2d; --crit-soft:#fbeaea;
+  --bar:#c9ccd3; --bar-track:#f0f1f3;
+  --shadow:0 8px 28px -12px rgba(16,20,28,.28);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#0f1216; --surface:#161a1f; --surface-2:#1c2127;
+    --ink:#e9ecf1; --ink-2:#a2aab8; --ink-3:#79808d;
+    --line:#272c33; --line-2:#20252b;
+    --accent:#5b9df0; --accent-soft:#17273a;
+    --good:#0ca30c; --good-ink:#4cc34c; --good-soft:#11291a;
+    --warn:#fab219; --warn-ink:#e0a327; --warn-soft:#2e2412;
+    --crit:#d03b3b; --crit-ink:#ef7070; --crit-soft:#2e1717;
+    --bar:#3c434d; --bar-track:#1e232a;
+    --shadow:0 8px 28px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#0f1216; --surface:#161a1f; --surface-2:#1c2127;
+  --ink:#e9ecf1; --ink-2:#a2aab8; --ink-3:#79808d;
+  --line:#272c33; --line-2:#20252b;
+  --accent:#5b9df0; --accent-soft:#17273a;
+  --good:#0ca30c; --good-ink:#4cc34c; --good-soft:#11291a;
+  --warn:#fab219; --warn-ink:#e0a327; --warn-soft:#2e2412;
+  --crit:#d03b3b; --crit-ink:#ef7070; --crit-soft:#2e1717;
+  --bar:#3c434d; --bar-track:#1e232a;
+  --shadow:0 8px 28px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--ground); color:var(--ink);
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+a{color:var(--accent);text-decoration:none}
+
+/* ---------- shell ---------- */
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}
+.side{
+  border-right:1px solid var(--line); background:var(--surface);
+  padding:20px 0; position:sticky; top:0; height:100vh; overflow-y:auto;
+}
+.brand{padding:0 20px 20px;display:flex;flex-direction:column;gap:2px}
+.brand b{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.brand span{font-size:12px;color:var(--ink-3)}
+.nav{display:flex;flex-direction:column;gap:2px;padding:0 12px}
+.nav-label{
+  font-size:11px;font-weight:600;color:var(--ink-3);letter-spacing:.07em;
+  text-transform:uppercase;padding:16px 8px 6px;
+}
+.nav a{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:7px 8px;border-radius:6px;color:var(--ink-2);font-weight:500;
+}
+.nav a:hover{background:var(--surface-2);color:var(--ink)}
+.nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .cnt{font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.nav a[aria-current="page"] .cnt{color:var(--accent)}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{
+  display:flex;align-items:center;gap:16px;padding:14px 32px;
+  border-bottom:1px solid var(--line);background:var(--surface);
+  position:sticky;top:0;z-index:20;
+}
+.crumbs{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-3);min-width:0;flex-wrap:wrap}
+.crumbs a{color:var(--ink-2);font-weight:500}
+.crumbs a:hover{color:var(--accent)}
+.crumbs .sep{color:var(--ink-3)}
+.crumbs .now{color:var(--ink);font-weight:600}
+.spacer{flex:1}
+.sample-badge{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;
+  background:var(--warn-soft);color:var(--warn-ink);font-size:12px;font-weight:600;
+  border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);white-space:nowrap;
+}
+.sample-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--warn)}
+.theme-btn{padding:6px 10px;border:1px solid var(--line);border-radius:6px;font-size:12px;color:var(--ink-2)}
+.theme-btn:hover{border-color:var(--ink-3);color:var(--ink)}
+
+.page{padding:28px 32px 72px;max-width:1440px;width:100%}
+.page-head{display:flex;align-items:flex-end;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+h1{font-size:28px;font-weight:600;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.sub{color:var(--ink-2);font-size:13px;margin:4px 0 0}
+
+/* ---------- primitives ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.card-head{
+  display:flex;align-items:baseline;gap:12px;padding:14px 16px;
+  border-bottom:1px solid var(--line-2);flex-wrap:wrap;
+}
+.card-head h2{font-size:14px;font-weight:600;margin:0;letter-spacing:-.005em}
+.card-head .hint{font-size:12px;color:var(--ink-3);margin-left:auto}
+.card-body{padding:16px}
+
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.kpi .k{font-size:12px;color:var(--ink-2);font-weight:500}
+.kpi .v{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.1}
+.kpi .m{font-size:12px;color:var(--ink-3)}
+.kpi.alert{border-color:color-mix(in srgb,var(--crit) 40%,var(--line))}
+.kpi.alert .v{color:var(--crit-ink)}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.grid-1{display:grid;gap:16px;margin-bottom:16px}
+
+.pill{
+  display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;
+  font-size:12px;font-weight:600;line-height:1.6;white-space:nowrap;
+}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.pill.good{background:var(--good-soft);color:var(--good-ink)}
+.pill.warn{background:var(--warn-soft);color:var(--warn-ink)}
+.pill.crit{background:var(--crit-soft);color:var(--crit-ink)}
+.pill.mute{background:var(--surface-2);color:var(--ink-2)}
+.pill.mute::before{background:var(--bar)}
+
+.tag{
+  display:inline-block;padding:2px 7px;border-radius:4px;background:var(--surface-2);
+  color:var(--ink-2);font-size:11px;font-weight:600;letter-spacing:.01em;
+}
+
+/* ---------- ranked bars ---------- */
+.rank{display:flex;flex-direction:column}
+.rank-row{
+  display:grid;grid-template-columns:minmax(120px,1.15fr) minmax(80px,2fr) auto;
+  align-items:center;gap:12px;padding:7px 8px;border-radius:6px;text-align:left;width:100%;
+}
+.rank-row:hover{background:var(--surface-2)}
+.rank-row .lbl{font-size:13px;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rank-row .lbl small{display:block;font-weight:400;color:var(--ink-3);font-size:11px}
+.track{display:block;height:8px;background:var(--bar-track);border-radius:0 4px 4px 0;overflow:hidden}
+.fill{display:block;height:8px;border-radius:0 4px 4px 0;background:var(--bar);min-width:2px}
+.fill.good{background:var(--good)} .fill.warn{background:var(--warn)} .fill.crit{background:var(--crit)}
+.rank-row .val{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;min-width:74px;text-align:right}
+.rank-row .val small{font-weight:400;color:var(--ink-3);font-size:11px;margin-left:4px}
+.rank-row.click{cursor:pointer}
+.rank-row.click:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* ---------- table ---------- */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{
+  text-align:left;font-size:11px;font-weight:600;color:var(--ink-3);letter-spacing:.06em;
+  text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+th.r,td.r{text-align:right}
+td{padding:10px 12px;border-bottom:1px solid var(--line-2);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover{background:var(--surface-2)}
+.who{display:flex;align-items:center;gap:10px;min-width:0}
+.av{
+  width:26px;height:26px;border-radius:50%;background:var(--surface-2);color:var(--ink-2);
+  display:grid;place-items:center;font-size:11px;font-weight:600;flex:none;border:1px solid var(--line);
+}
+.who b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini{height:6px;background:var(--bar-track);border-radius:0 3px 3px 0;width:72px;display:inline-block;vertical-align:middle}
+.mini i{display:block;height:6px;border-radius:0 3px 3px 0;background:var(--bar)}
+.mini i.good{background:var(--good)} .mini i.warn{background:var(--warn)} .mini i.crit{background:var(--crit)}
+
+/* ---------- matrix ---------- */
+.mx-wrap{overflow-x:auto;padding-bottom:4px}
+.mx{border-collapse:separate;border-spacing:0;font-size:12px}
+.mx th.rot{height:104px;width:22px;padding:0;vertical-align:bottom}
+.mx th.rot span{
+  writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;font-weight:500;
+  color:var(--ink-2);text-transform:none;letter-spacing:0;padding-bottom:6px;white-space:nowrap;
+}
+.mx th.nm{text-align:left;padding:0 12px 6px 0;position:sticky;left:0;background:var(--surface);z-index:2}
+.mx td.nm{
+  padding:0 12px 0 0;white-space:nowrap;position:sticky;left:0;background:var(--surface);
+  font-size:12px;font-weight:500;border:0;z-index:2;
+}
+.mx td.c{padding:0;width:22px;height:22px;text-align:center;border:0}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;border:1.5px solid var(--bar)}
+.dot.done{background:var(--good);border-color:var(--good)}
+.dot.part{background:linear-gradient(90deg,var(--warn) 50%,transparent 50%);border-color:var(--warn)}
+.dot.none{background:transparent;border-style:dashed}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);padding-top:12px;margin-top:4px;border-top:1px solid var(--line-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+/* ---------- charts ---------- */
+.hist{display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:18px}
+.hcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%;position:relative}
+.hcol .bar{width:100%;border-radius:4px 4px 0 0;background:var(--bar);min-height:2px}
+.hcol .bar.good{background:var(--good)} .hcol .bar.warn{background:var(--warn)} .hcol .bar.crit{background:var(--crit)}
+.hcol .n{position:absolute;top:-16px;font-size:11px;font-weight:600;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.hax{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--line-2);margin-top:4px}
+.hax span{flex:1;text-align:center;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+.spark{width:100%;height:160px;display:block;overflow:visible}
+
+/* ---------- filters ---------- */
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filters label{font-size:12px;color:var(--ink-3);font-weight:500}
+select,input[type=search]{
+  font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;
+  background:var(--surface);color:var(--ink);min-width:0;
+}
+select:focus,input:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:5px 11px;border:1px solid var(--line);border-radius:999px;font-size:12px;font-weight:500;color:var(--ink-2)}
+.chip:hover{border-color:var(--ink-3);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+
+/* ---------- panel ---------- */
+.scrim{position:fixed;inset:0;background:rgba(10,13,18,.42);z-index:40;opacity:0;transition:opacity .18s}
+.scrim.on{opacity:1}
+.panel{
+  position:fixed;top:0;right:0;height:100vh;width:min(560px,100vw);background:var(--surface);
+  border-left:1px solid var(--line);box-shadow:var(--shadow);z-index:41;overflow-y:auto;
+  transform:translateX(100%);transition:transform .22s cubic-bezier(.32,.72,0,1);
+}
+.panel.on{transform:none}
+.panel-head{
+  display:flex;align-items:flex-start;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line);
+  position:sticky;top:0;background:var(--surface);z-index:1;
+}
+.panel-head h3{margin:0;font-size:18px;font-weight:600;letter-spacing:-.015em;text-wrap:balance}
+.panel-body{padding:20px}
+.x{width:28px;height:28px;border-radius:6px;display:grid;place-items:center;color:var(--ink-3);font-size:18px;flex:none;margin-left:auto}
+.x:hover{background:var(--surface-2);color:var(--ink)}
+
+.opt{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:10px 12px;border:1px solid var(--line);border-radius:7px;margin-bottom:8px;
+}
+.opt.correct{border-color:color-mix(in srgb,var(--good) 45%,var(--line));background:var(--good-soft)}
+.opt.top-wrong{border-color:color-mix(in srgb,var(--crit) 40%,var(--line))}
+.opt .key{
+  width:22px;height:22px;border-radius:5px;background:var(--surface-2);display:grid;place-items:center;
+  font-size:11px;font-weight:600;color:var(--ink-2);
+}
+.opt.correct .key{background:var(--good);color:#fff}
+.opt .txt{font-size:13px;min-width:0}
+.opt .pct{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
+.opt .obar{grid-column:1/-1;height:4px;background:var(--bar-track);border-radius:0 2px 2px 0;margin-top:2px}
+.opt .obar i{display:block;height:4px;border-radius:0 2px 2px 0;background:var(--bar)}
+.opt.correct .obar i{background:var(--good)}
+.opt.top-wrong .obar i{background:var(--crit)}
+
+.sec-title{font-size:11px;font-weight:600;color:var(--ink-3);letter-spacing:.07em;text-transform:uppercase;margin:22px 0 10px}
+.sec-title:first-child{margin-top:0}
+.namelist{display:flex;flex-wrap:wrap;gap:6px}
+.namechip{
+  display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border:1px solid var(--line);
+  border-radius:999px;font-size:12px;font-weight:500;
+}
+.namechip:hover{border-color:var(--accent);color:var(--accent)}
+.namechip .av{width:20px;height:20px;font-size:10px}
+
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--line-2);border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.kv div{background:var(--surface);padding:12px 14px}
+.kv .k{font-size:11px;color:var(--ink-3);font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+.kv .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.015em;margin-top:3px}
+
+.empty{padding:32px 16px;text-align:center;color:var(--ink-3);font-size:13px}
+.note{font-size:12px;color:var(--ink-3);padding:10px 16px;border-top:1px solid var(--line-2);display:flex;gap:8px;align-items:flex-start}
+.note b{color:var(--ink-2);font-weight:600}
+
+.tip{
+  position:fixed;pointer-events:none;z-index:60;background:var(--ink);color:var(--ground);
+  font-size:12px;font-weight:500;padding:6px 9px;border-radius:6px;opacity:0;transition:opacity .12s;
+  max-width:260px;line-height:1.4;
+}
+.tip.on{opacity:1}
+
+@media (max-width:1180px){
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .grid-2{grid-template-columns:1fr}
+}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line)}
+  .nav{flex-direction:row;flex-wrap:wrap}
+  .nav-label{display:none}
+  .page,.topbar{padding-left:18px;padding-right:18px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand"><b>Baron Cabot</b><span>Sales Training Intelligence</span></div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div class="crumbs" id="crumbs"></div>
+      <div class="spacer"></div>
+      <span class="sample-badge">Sample data</span>
+      <button class="theme-btn" id="themeBtn" type="button">Dark</button>
+    </div>
+    <div class="page" id="page"></div>
+  </div>
+</div>
+<div class="scrim" id="scrim" hidden></div>
+<aside class="panel" id="panel" hidden aria-label="Detail"></aside>
+<div class="tip" id="tip"></div>
+
+<script>
+/* ==========================================================================
+   Sales Training Intelligence — prototype
+   Every figure on screen is DERIVED from the `answers` event log below,
+   exactly as the production dashboard will derive it from the database.
+   Swapping seeded events for real rows changes the data source, not the maths.
+   ========================================================================== */
+
+/* ---------- thresholds: defined once, used everywhere ---------- */
+const T = { good: 80, warn: 60, minN: 5 };
+const band = p => p >= T.good ? 'good' : p >= T.warn ? 'warn' : 'crit';
+const bandLabel = { good:'On track', warn:'Needs attention', crit:'Critical' };
+
+/* ---------- seeded RNG so the prototype is stable across reloads ---------- */
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0;
+  let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t;
+  return ((t^t>>>14)>>>0)/4294967296; }; }
+
+/* ---------- skills ---------- */
+const SKILLS = {
+  obj:  'Objection Handling',
+  close:'Closing',
+  price:'Pricing & Payment Plans',
+  qual: 'Qualification',
+  fu:   'Follow-up',
+  pk:   'Product Knowledge',
+  comp: 'Compliance'
+};
+
+/* ---------- question bank (property sales) ---------- */
+const QUESTIONS = [
+ {id:'Q01',skill:'obj',base:.52,t:'A client says the service charge is higher than at a competing development. What is the strongest first response?',
+  o:['Offer a discount on the purchase price','Ask what they are comparing it to, then break down what the charge covers','Explain that every development has a service charge','Move them on to a different unit'],c:1},
+ {id:'Q02',skill:'obj',base:.61,t:'"I want to think about it." What does this objection most often actually mean?',
+  o:['The client is not interested','A concern has not been surfaced yet','The price is too high','They need to speak to a partner'],c:1},
+ {id:'Q03',skill:'obj',base:.44,t:'A buyer objects that the completion date is too far out. Which response builds the most value?',
+  o:['Agree that it is a long wait','Offer an alternative development','Frame the build period against the payment plan and the price held to completion','Ask them to reserve anyway'],c:2},
+ {id:'Q04',skill:'close',base:.70,t:'Which of these is a legitimate assumptive close?',
+  o:['"Shall I hold Apartment 402 for you on a 48-hour reservation?"','"This is the last one at this price."','"Do you want to buy it?"','"Let me know when you decide."'],c:0},
+ {id:'Q05',skill:'close',base:.58,t:'When should you first attempt a trial close?',
+  o:['Only after the full presentation','As soon as the client gives a buying signal','At the very start of the meeting','Only on a second viewing'],c:1},
+ {id:'Q06',skill:'close',base:.49,t:'A client is ready but hesitates at the reservation fee. Best action?',
+  o:['Waive the fee','Restate what the fee secures and how it is treated under the reservation terms','End the meeting and follow up next week','Escalate to the sales manager immediately'],c:1},
+ {id:'Q07',skill:'pk',base:.93,t:'What does "off-plan" mean?',
+  o:['A property sold without floor plans','A property purchased before construction is complete','A property outside the masterplan','A resale property'],c:1},
+ {id:'Q08',skill:'pk',base:.82,t:'In a UK leasehold purchase, what is ground rent?',
+  o:['A charge for building maintenance','A periodic payment to the freeholder for the land','A local authority tax','A one-off cost at completion'],c:1},
+ {id:'Q09',skill:'pk',base:.88,t:'What does the service charge typically cover?',
+  o:["The buyer's mortgage interest",'Communal maintenance, building insurance and shared facilities','Stamp duty',"The developer's profit margin"],c:1},
+ {id:'Q10',skill:'pk',base:.47,t:'What is the Dubai Land Department transfer fee on a property purchase?',
+  o:['2%','4%','5%','7%'],c:1},
+ {id:'Q11',skill:'pk',base:.55,t:'What is an Oqood certificate?',
+  o:['A tenancy contract','The interim registration of an off-plan sale with the DLD','A mortgage pre-approval','A snagging report'],c:1},
+ {id:'Q12',skill:'price',base:.78,t:'A client asks why two units of identical size are priced differently. Which factor is most likely?',
+  o:["The developer's pricing mood",'Floor level, aspect and outlook','The colour scheme','The unit number'],c:1},
+ {id:'Q13',skill:'price',base:.62,t:'On a 60/40 payment plan, what does the 40 represent?',
+  o:['A 40% deposit','40% payable on completion and handover','A 40% discount','40 monthly instalments'],c:1},
+ {id:'Q14',skill:'price',base:.53,t:'Which of these is NOT part of the buyer’s upfront cost on a UK new-build purchase?',
+  o:['Reservation fee','SDLT (stamp duty)','Legal fees','The year-five service charge'],c:3},
+ {id:'Q15',skill:'qual',base:.74,t:"Which question best qualifies a buyer's motivation?",
+  o:['"What is your budget?"','"Are you buying to live in or to let?"','"Do you like the kitchen?"','"When can you visit?"'],c:1},
+ {id:'Q16',skill:'qual',base:.66,t:'A lead will not disclose their budget. Best next step?',
+  o:['Show only the cheapest units','End the call','Present two price points and read the reaction','Insist on a figure before continuing'],c:2},
+ {id:'Q17',skill:'qual',base:.71,t:'Which is the strongest buying signal?',
+  o:['"It looks nice."','"How soon would I need to pay the second instalment?"','"Send me the brochure."','"I will speak to my wife."'],c:1},
+ {id:'Q18',skill:'comp',base:.80,t:'A client asks you to guarantee a rental yield. What do you do?',
+  o:['Give your best estimate as a guarantee','State only figures you can evidence and never guarantee future returns','Quote the highest yield the development has achieved',"Refer to a competitor's published numbers"],c:1},
+ {id:'Q19',skill:'comp',base:.77,t:'When must the reservation terms be provided to the buyer?',
+  o:['After payment is taken','Before the reservation fee is taken','At legal completion','Only if the buyer asks'],c:1},
+ {id:'Q20',skill:'comp',base:.86,t:'A buyer asks whether they should take a mortgage. You should:',
+  o:['Recommend the best product you know','Refer them to a regulated adviser','Give your personal opinion','Compare current rates for them'],c:1},
+ {id:'Q21',skill:'fu',base:.72,t:'A viewing ended with no decision. When is the best follow-up?',
+  o:['Within 24 hours, with a specific next step','After a week, so they have space','Only if they call you','Immediately and repeatedly'],c:0},
+ {id:'Q22',skill:'fu',base:.68,t:'What makes a follow-up message effective?',
+  o:['Repeating the full presentation','Referencing a specific concern they raised and answering it','Sending the price list again','Asking "any update?"'],c:1},
+ {id:'Q23',skill:'obj',base:.41,t:'"Your competitor is offering a better payment plan." Best response?',
+  o:['Match the plan immediately','Point out weaknesses in the competitor','Compare total cost, delivery record and specification, not the plan alone','Explain that plans cannot be changed'],c:2},
+ {id:'Q24',skill:'close',base:.84,t:'The client says yes verbally. What actually secures the sale?',
+  o:['A handshake and a diary note','Completing the reservation form and taking the fee','Emailing a summary that evening','Telling your manager'],c:1},
+ {id:'Q25',skill:'pk',base:.87,t:'What is a snagging list?',
+  o:['A list of unsold units','A record of defects found before handover for the developer to fix','A list of interested buyers','The construction programme'],c:1},
+ {id:'Q26',skill:'qual',base:.69,t:'Why does cash buyer versus mortgage buyer matter at qualification?',
+  o:['Cash buyers always pay more','It changes the timeline, the payment plan fit and the evidence needed','It makes no practical difference','Mortgage buyers are less serious'],c:1},
+ {id:'Q27',skill:'price',base:.81,t:'What is SDLT?',
+  o:['A service charge band','Stamp Duty Land Tax on UK property purchases','A developer levy','A leasehold covenant'],c:1},
+ {id:'Q28',skill:'fu',base:.75,t:'A buyer goes quiet after reserving. First action?',
+  o:['Cancel the reservation','Contact them with the next milestone and its deadline','Wait for them to make contact','Speak only to their solicitor'],c:1}
+];
+const QBY = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
+
+/* ---------- the 17 trainings ---------- */
+const TRAININGS = [
+ {id:'t01',cat:'Handbook',   title:'Managers Handbook',        sub:'Baron Cabot', slug:'baron-cabot-managers-handbook-2'},
+ {id:'t02',cat:'Training',   title:'London Zones 1–3',         sub:'Territory',   slug:'london-zones1-3-training-deck-7'},
+ {id:'t03',cat:'Training',   title:'London Zones 4–6',         sub:'Territory',   slug:'london-zones4-6-training-deck-2'},
+ {id:'t04',cat:'Training',   title:'Manchester',               sub:'Territory',   slug:'manchester-training-deck'},
+ {id:'t05',cat:'Training',   title:'Birmingham',               sub:'Territory',   slug:'birmingham-training-deck-1'},
+ {id:'t06',cat:'Training',   title:'Leicester',                sub:'Territory',   slug:'leicester-training-deck-1'},
+ {id:'t07',cat:'Training',   title:'Liverpool',                sub:'Territory',   slug:'liverpool-training-deck'},
+ {id:'t08',cat:'Training',   title:'Dubai',                    sub:'Territory',   slug:'dubai-training-deck-1'},
+ {id:'t09',cat:'Training',   title:'Phuket',                   sub:'Territory',   slug:'phuket-training-deck'},
+ {id:'t10',cat:'Sales',      title:'The Hilight',              sub:'Development',  slug:'the-hilight-sales-slides-3'},
+ {id:'t11',cat:'Sales',      title:'Paper Yard',               sub:'Development',  slug:'paper-yard-sales-slides'},
+ {id:'t12',cat:'Sales',      title:'Waterhouse Gardens',       sub:'Development',  slug:'waterhouse-gardens-sales-slides'},
+ {id:'t13',cat:'Sales',      title:'Furness Quay',             sub:'Development',  slug:'furness-quay-sales-slides'},
+ {id:'t14',cat:'Sales',      title:'Vivere',                   sub:'Development',  slug:'vivere-sales-slides'},
+ {id:'t15',cat:'Sales',      title:'Velocity',                 sub:'Development',  slug:'velocity-sales-slides'},
+ {id:'t16',cat:'Sales',      title:'Viadux Penthouses',        sub:'Development',  slug:'viadux-penthouses-sales-slides-1'},
+ {id:'t17',cat:'Sales',      title:'W Residences',             sub:'Development',  slug:'w-residences-sales-slides'}
+];
+const TBY = Object.fromEntries(TRAININGS.map(t => [t.id, t]));
+
+/* assign 8 questions per training, deterministically, weighted to the deck's focus */
+(function assign(){
+  const focus = {
+    Handbook:['comp','close','obj','qual'],
+    Training:['qual','obj','pk','fu','comp'],
+    Sales:   ['pk','price','obj','close']
+  };
+  TRAININGS.forEach((t,i) => {
+    const r = rng(9000 + i * 37);
+    const want = focus[t.cat];
+    const pool = QUESTIONS.slice().sort((a,b) => {
+      const av = (want.includes(a.skill) ? 0 : 1) + r() * .6;
+      const bv = (want.includes(b.skill) ? 0 : 1) + r() * .6;
+      return av - bv;
+    });
+    t.qs = pool.slice(0, 8).map(q => q.id).sort();
+  });
+})();
+
+/* ---------- 20 staff ---------- */
+const NAMES = [
+ ['Aisha Rahman','London'],['Tom Bradshaw','Manchester'],['Priya Nair','London'],
+ ['Callum Reid','Manchester'],['Fatima Al Suwaidi','Dubai'],['James Okafor','Birmingham'],
+ ['Sofia Marchetti','London'],['Hassan Darwish','Dubai'],['Ellie Thompson','Liverpool'],['Daniel Kovacs','Leicester'],
+ ['Noor Haddad','Dubai'],['Ryan Whitfield','Manchester'],['Chloe Bennett','London'],
+ ['Omar Farouk','Birmingham'],['Grace Adeyemi','London'],['Liam Doherty','Liverpool'],
+ ['Zainab Iqbal','Leicester'],['Marcus Bell','Manchester'],['Hana Suzuki','London'],
+ ['Peter Novak','Birmingham']
+].map(([n,o]) => [n.replace(/\s+/g,' ').trim(), o]);
+
+const STAFF = NAMES.map(([name, office], i) => {
+  const r = rng(400 + i * 13);
+  return {
+    id: 's' + String(i + 1).padStart(2,'0'),
+    name, office,
+    ability: (r() - .45) * .26,          // -0.12 .. +0.14 accuracy modifier
+    engagement: .52 + r() * .58          // drives how many trainings they finish
+  };
+});
+const SBY = Object.fromEntries(STAFF.map(s => [s.id, s]));
+
+/* ---------- generate the event log ---------- */
+const attempts = [];   // one row per staff x training that was opened
+const answers  = [];   // one row per question answered — the tracker payload
+const WEEKS = 10, NOW = Date.now(), WEEK = 6048e5;
+
+STAFF.forEach((s, si) => {
+  TRAININGS.forEach((t, ti) => {
+    const r = rng(si * 977 + ti * 131 + 7);
+    const roll = r();
+    if (roll > s.engagement + .22) return;              // never opened
+    const complete = roll < s.engagement;
+    const qs = complete ? t.qs : t.qs.slice(0, 2 + Math.floor(r() * 4));
+    const startedAt = NOW - Math.floor(r() * WEEKS * WEEK);
+    let ms = 0;
+    qs.forEach(qid => {
+      const q = QBY[qid];
+      const p = Math.max(.08, Math.min(.97, q.base + s.ability));
+      const ok = r() < p;
+      let chosen = q.c;
+      if (!ok) {                                        // pick a plausible distractor
+        const wrong = [0,1,2,3].filter(x => x !== q.c);
+        chosen = wrong[Math.floor(r() * wrong.length) % wrong.length];
+      }
+      const t_ms = 9000 + Math.floor(r() * 46000);
+      ms += t_ms;
+      answers.push({ staff:s.id, training:t.id, q:qid, chosen, ok, ms:t_ms });
+    });
+    ms += 240000 + Math.floor(r() * 420000);            // reading the slides
+    attempts.push({ staff:s.id, training:t.id, complete, startedAt, ms });
+  });
+});
+
+/* ---------- aggregation (the only place numbers are produced) ---------- */
+const A = (() => {
+  const byStaff = {}, byTraining = {}, bySkill = {}, byQ = {};
+  STAFF.forEach(s => byStaff[s.id] = { done:0, opened:0, right:0, total:0, ms:0, wrongBySkill:{} });
+  TRAININGS.forEach(t => byTraining[t.id] = { started:0, done:0, right:0, total:0, ms:0, skill:{} });
+  Object.keys(SKILLS).forEach(k => bySkill[k] = { right:0, total:0, staff:new Set() });
+  QUESTIONS.forEach(q => byQ[q.id] = { right:0, total:0, chosen:[0,0,0,0], wrongStaff:new Set(), ms:0 });
+
+  attempts.forEach(a => {
+    byStaff[a.staff].opened++; byTraining[a.training].started++;
+    byStaff[a.staff].ms += a.ms; byTraining[a.training].ms += a.ms;
+    if (a.complete) { byStaff[a.staff].done++; byTraining[a.training].done++; }
+  });
+  answers.forEach(v => {
+    const sk = QBY[v.q].skill;
+    const S = byStaff[v.staff], TR = byTraining[v.training], SK = bySkill[sk], Q = byQ[v.q];
+    S.total++; TR.total++; SK.total++; Q.total++;
+    Q.chosen[v.chosen]++; Q.ms += v.ms; SK.staff.add(v.staff);
+    TR.skill[sk] = TR.skill[sk] || { right:0, total:0 };
+    TR.skill[sk].total++;
+    if (v.ok) { S.right++; TR.right++; SK.right++; Q.right++; TR.skill[sk].right++; }
+    else { S.wrongBySkill[sk] = (S.wrongBySkill[sk]||0) + 1; Q.wrongStaff.add(v.staff); }
+  });
+
+  const pct = (a,b) => b ? Math.round(a / b * 100) : null;
+  const staff = STAFF.map(s => {
+    const b = byStaff[s.id];
+    return { ...s, done:b.done, opened:b.opened, completion:pct(b.done, TRAININGS.length),
+             score:pct(b.right, b.total), n:b.total, ms:b.ms, wrongBySkill:b.wrongBySkill,
+             atRisk: b.done / TRAININGS.length < .5 || (b.total >= T.minN && b.right / b.total * 100 < T.warn) };
+  });
+  const trainings = TRAININGS.map(t => {
+    const b = byTraining[t.id];
+    const skills = Object.entries(b.skill).map(([k,v]) => ({ k, pct:pct(v.right, v.total), n:v.total }))
+                         .sort((x,y) => x.pct - y.pct);
+    return { ...t, started:b.started, done:b.done, completion:pct(b.done, STAFF.length),
+             score:pct(b.right, b.total), n:b.total, ms:b.ms,
+             avgMs: b.started ? Math.round(b.ms / b.started) : 0, weakest:skills[0] || null };
+  });
+  const skills = Object.entries(bySkill).map(([k,v]) =>
+    ({ k, name:SKILLS[k], pct:pct(v.right, v.total), n:v.total, staff:v.staff.size }))
+    .sort((a,b) => a.pct - b.pct);
+  const questions = QUESTIONS.map(q => {
+    const b = byQ[q.id];
+    return { ...q, n:b.total, right:b.right, wrongPct:pct(b.total - b.right, b.total),
+             correctPct:pct(b.right, b.total), chosen:b.chosen,
+             wrongStaff:[...b.wrongStaff], avgMs: b.total ? Math.round(b.ms / b.total) : 0,
+             inTrainings: TRAININGS.filter(t => t.qs.includes(q.id)).map(t => t.id) };
+  }).filter(q => q.n > 0).sort((a,b) => b.wrongPct - a.wrongPct);
+
+  const doneTotal = attempts.filter(a => a.complete).length;
+  const rightTotal = answers.filter(a => a.ok).length;
+
+  /* completion over time, weekly */
+  const series = [];
+  for (let w = WEEKS - 1; w >= 0; w--) {
+    const cut = NOW - w * WEEK;
+    const c = attempts.filter(a => a.complete && a.startedAt <= cut).length;
+    series.push({ t:cut, pct: Math.round(c / (STAFF.length * TRAININGS.length) * 100) });
+  }
+  /* score distribution, 10-point buckets */
+  const buckets = Array.from({length:10}, () => 0);
+  staff.forEach(s => { if (s.score != null) buckets[Math.min(9, Math.floor(s.score / 10))]++; });
+
+  return {
+    staff, trainings, skills, questions, series, buckets,
+    kpi: {
+      staff: STAFF.length,
+      completion: Math.round(doneTotal / (STAFF.length * TRAININGS.length) * 100),
+      score: Math.round(rightTotal / answers.length * 100),
+      ms: Math.round(attempts.reduce((n,a) => n + a.ms, 0) / STAFF.length),
+      atRisk: staff.filter(s => s.atRisk).length
+    },
+    cell: (sid, tid) => {
+      const a = attempts.find(x => x.staff === sid && x.training === tid);
+      return !a ? 'none' : a.complete ? 'done' : 'part';
+    }
+  };
+})();
+
+/* ---------- formatting ---------- */
+const dur = ms => { const m = Math.round(ms / 60000);
+  return m >= 60 ? `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m` : `${m}m`; };
+const initials = n => n.split(' ').map(w => w[0]).slice(0,2).join('');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+/* the n<5 rule: with 20 staff a thin slice must not read as a percentage */
+const showPct = (p, n) => (p == null || n < T.minN) ? null : p;
+
+/* ---------- components ---------- */
+function rankRow({ label, sub, pct, n, right, href, tip }) {
+  const shown = showPct(pct, n);
+  const cls = shown == null ? '' : band(shown);
+  const w = shown == null ? 0 : shown;
+  const val = shown == null
+    ? `<span style="color:var(--ink-3)">n=${n}</span>`
+    : `${shown}%<small>n=${n}</small>`;
+  const tag = href ? 'button' : 'div';
+  return `<${tag} class="rank-row${href ? ' click' : ''}"${href ? ` data-go="${href}"` : ''}${tip ? ` data-tip="${esc(tip)}"` : ''}>
+    <span class="lbl">${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ''}</span>
+    <span class="track"><span class="fill ${cls}" style="width:${w}%"></span></span>
+    <span class="val num">${right != null ? right : val}</span>
+  </${tag}>`;
+}
+const card = (title, hint, body, note) => `<section class="card">
+  <div class="card-head"><h2>${esc(title)}</h2>${hint ? `<span class="hint">${esc(hint)}</span>` : ''}</div>
+  <div class="card-body">${body}</div>${note ? `<p class="note">${note}</p>` : ''}</section>`;
+const pill = (p, n) => { const s = showPct(p, n);
+  return s == null ? `<span class="pill mute">n=${n}</span>`
+    : `<span class="pill ${band(s)}">${bandLabel[band(s)]}</span>`; };
+const avatar = n => `<span class="av">${esc(initials(n))}</span>`;
+
+/* ---------- pages ---------- */
+function pageOverview(){
+  const k = A.kpi;
+  const kpis = `<div class="kpis">
+    <div class="kpi"><span class="k">Total staff</span><span class="v num">${k.staff}</span><span class="m">${A.staff.filter(s=>s.opened>0).length} active</span></div>
+    <div class="kpi"><span class="k">Completion</span><span class="v num">${k.completion}%</span><span class="m">${attempts.filter(a=>a.complete).length} of ${k.staff*17} assignments</span></div>
+    <div class="kpi"><span class="k">Average score</span><span class="v num">${k.score}%</span><span class="m">${answers.length.toLocaleString()} answers recorded</span></div>
+    <div class="kpi"><span class="k">Avg time · per staff</span><span class="v num">${dur(k.ms)}</span><span class="m">across trainings opened</span></div>
+    <div class="kpi${k.atRisk?' alert':''}"><span class="k">At risk</span><span class="v num">${k.atRisk}</span><span class="m">under 50% done or under ${T.warn}% score</span></div>
+  </div>`;
+
+  const weak = A.skills.map(s => rankRow({
+    label:s.name, pct:s.pct, n:s.n, href:`#/skills?skill=${s.k}`,
+    tip:`${s.name}: ${s.n} answers from ${s.staff} staff` })).join('');
+
+  const missed = A.questions.slice(0,5).map(q => rankRow({
+    label:`${q.id} · ${q.t.slice(0,58)}${q.t.length>58?'…':''}`, sub:SKILLS[q.skill],
+    pct:q.wrongPct, n:q.n, href:`#/skills?q=${q.id}`,
+    right:`${q.wrongPct}%<small>wrong</small>`, tip:'Click to see what they picked instead' })).join('');
+
+  const comp = A.trainings.slice().sort((a,b) => a.completion - b.completion).map(t => rankRow({
+    label:t.title, sub:t.cat, pct:t.completion, n:STAFF.length, href:`#/trainings/${t.id}`,
+    tip:`${t.done} of ${STAFF.length} completed` })).join('');
+
+  return `<div class="page-head"><div><h1>Overview</h1>
+    <p class="sub">Where the team stands today, worst first.</p></div></div>
+  ${kpis}
+  <div class="grid-2">
+    ${card('Team weak areas','accuracy by skill', `<div class="rank">${weak}</div>`,
+      `<b>Read:</b> ${A.skills[0].name} is the weakest skill across the team — ${A.skills[0].pct}% of ${A.skills[0].n} answers correct, from ${A.skills[0].staff} of ${STAFF.length} staff.`)}
+    ${card('Most missed questions','% answering incorrectly', `<div class="rank">${missed}</div>`,
+      `<b>Click any row</b> to see the wrong answer people actually chose — that is the coaching cue.`)}
+  </div>
+  <div class="grid-2">
+    ${card('Score distribution','staff per 10-point band', histogram())}
+    ${card('Completion over time','last 10 weeks', lineChart())}
+  </div>
+  <div class="grid-1">
+    ${card('Training completion','all 17 decks, lowest completion first', `<div class="rank">${comp}</div>`)}
+  </div>`;
+}
+
+function histogram(){
+  const max = Math.max(...A.buckets, 1);
+  const cols = A.buckets.map((v,i) => {
+    const mid = i * 10 + 5, cls = band(mid);
+    return `<div class="hcol" data-tip="${v} staff scoring ${i*10}–${i*10+9}%">
+      ${v ? `<span class="n">${v}</span>` : ''}
+      <span class="bar ${v?cls:''}" style="height:${v/max*100}%"></span></div>`;
+  }).join('');
+  const ax = A.buckets.map((_,i) => `<span>${i*10}</span>`).join('');
+  return `<div class="hist">${cols}</div><div class="hax">${ax}</div>
+    <div class="legend">
+      <span><i class="dot done"></i> ${T.good}%+ on track</span>
+      <span><i class="dot part"></i> ${T.warn}–${T.good-1}% needs attention</span>
+      <span><i class="dot" style="background:var(--crit);border-color:var(--crit)"></i> under ${T.warn}% critical</span>
+    </div>`;
+}
+
+function lineChart(){
+  const W = 520, H = 130, P = 26, s = A.series;
+  const x = i => P + i * (W - P - 8) / (s.length - 1);
+  const y = v => H - 18 - (v / 100) * (H - 34);
+  const pts = s.map((d,i) => [x(i), y(d.pct)]);
+  const line = pts.map((p,i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const area = `${line} L ${pts.at(-1)[0].toFixed(1)} ${H-18} L ${pts[0][0].toFixed(1)} ${H-18} Z`;
+  const grid = [0,50,100].map(v =>
+    `<line x1="${P}" x2="${W-8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line-2)" stroke-width="1"/>
+     <text x="0" y="${y(v)+4}" font-size="11" fill="var(--ink-3)">${v}%</text>`).join('');
+  const dots = pts.map((p,i) =>
+    `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="9" fill="transparent"
+       data-tip="Week ${i+1}: ${s[i].pct}% complete"/>`).join('');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img"
+      aria-label="Team completion rose from ${s[0].pct}% to ${s.at(-1).pct}% over 10 weeks">
+    ${grid}
+    <path d="${area}" fill="var(--accent)" opacity=".10"/>
+    <path d="${line}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${pts.at(-1)[0].toFixed(1)}" cy="${pts.at(-1)[1].toFixed(1)}" r="4"
+      fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+    <text x="${W-8}" y="${(pts.at(-1)[1]-12).toFixed(1)}" font-size="12" font-weight="600"
+      text-anchor="end" fill="var(--ink)">${s.at(-1).pct}%</text>
+    ${dots}
+  </svg>`;
+}
+
+function pageTeam(q){
+  const f = q.get('status') || 'all';
+  const rows = A.staff.slice().sort((a,b) => a.completion - b.completion)
+    .filter(s => f === 'all' || (f === 'risk' ? s.atRisk : !s.atRisk))
+    .map(s => `<tr class="click" data-go="#/team/${s.id}">
+      <td><span class="who">${avatar(s.name)}<b>${esc(s.name)}</b></span></td>
+      <td style="color:var(--ink-3)">${esc(s.office)}</td>
+      <td class="r num">${s.done}<span style="color:var(--ink-3)">/17</span></td>
+      <td><span class="mini"><i class="${band(s.completion)}" style="width:${s.completion}%"></i></span>
+          <span class="num" style="margin-left:8px">${s.completion}%</span></td>
+      <td class="r num">${showPct(s.score,s.n) == null ? `n=${s.n}` : s.score + '%'}</td>
+      <td class="r num" style="color:var(--ink-2)">${dur(s.ms)}</td>
+      <td>${pill(s.score, s.n)}</td>
+    </tr>`).join('');
+
+  const chips = [['all','All 20'],['risk',`At risk · ${A.kpi.atRisk}`],['ok','On track']]
+    .map(([v,l]) => `<button class="chip" aria-pressed="${f===v}" data-go="#/team?status=${v}">${l}</button>`).join('');
+
+  const head = TRAININGS.map(t => `<th class="rot"><span>${esc(t.title)}</span></th>`).join('');
+  const body = A.staff.map(s => `<tr>
+      <td class="nm">${esc(s.name)}</td>
+      ${TRAININGS.map(t => { const st = A.cell(s.id, t.id);
+        const w = st === 'done' ? 'Completed' : st === 'part' ? 'In progress' : 'Not started';
+        return `<td class="c"><i class="dot ${st}" data-tip="${esc(s.name)} · ${esc(t.title)} — ${w}"></i></td>`;
+      }).join('')}</tr>`).join('');
+
+  return `<div class="page-head"><div><h1>Team</h1>
+    <p class="sub">20 staff · sorted by completion, lowest first.</p></div></div>
+  <div class="filters"><div class="chip-row">${chips}</div></div>
+  ${card('Staff roster', `${rows ? '' : 'no matches'}`, `<div class="tbl-wrap"><table>
+    <thead><tr><th>Name</th><th>Office</th><th class="r">Done</th><th>Completion</th>
+      <th class="r">Score</th><th class="r">Time</th><th>Status</th></tr></thead>
+    <tbody>${rows || `<tr><td colspan="7"><p class="empty">No staff match this filter.</p></td></tr>`}</tbody>
+  </table></div>`)}
+  <div style="height:16px"></div>
+  ${card('Coverage matrix','who has done what', `<div class="mx-wrap"><table class="mx">
+    <thead><tr><th class="nm"></th>${head}</tr></thead><tbody>${body}</tbody></table></div>
+    <div class="legend">
+      <span><i class="dot done"></i> Completed</span>
+      <span><i class="dot part"></i> In progress</span>
+      <span><i class="dot none"></i> Not started</span>
+    </div>`, `<b>20 × 17 = 340 assignments.</b> Shape carries the state as well as colour, so the grid still reads without it.`)}`;
+}
+
+function pageTrainings(q){
+  const cat = q.get('cat') || 'all';
+  const list = A.trainings.filter(t => cat === 'all' || t.cat === cat)
+                          .sort((a,b) => a.completion - b.completion);
+  const chips = [['all','All 17'],['Training','Territory · 8'],['Sales','Developments · 8'],['Handbook','Handbook · 1']]
+    .map(([v,l]) => `<button class="chip" aria-pressed="${cat===v}" data-go="#/trainings?cat=${v}">${l}</button>`).join('');
+  const rows = list.map(t => `<tr class="click" data-go="#/trainings/${t.id}">
+      <td><b style="font-weight:500">${esc(t.title)}</b><br><span style="color:var(--ink-3);font-size:12px">${esc(t.sub)}</span></td>
+      <td class="r num">${t.started}</td>
+      <td class="r num">${t.done}</td>
+      <td><span class="mini"><i class="${band(t.completion)}" style="width:${t.completion}%"></i></span>
+          <span class="num" style="margin-left:8px">${t.completion}%</span></td>
+      <td class="r num">${showPct(t.score,t.n) == null ? `n=${t.n}` : t.score + '%'}</td>
+      <td class="r num" style="color:var(--ink-2)">${t.avgMs ? dur(t.avgMs) : '—'}</td>
+      <td>${t.weakest ? `<span class="tag">${esc(SKILLS[t.weakest.k])} ${showPct(t.weakest.pct,t.weakest.n) ?? '·'}${showPct(t.weakest.pct,t.weakest.n)!=null?'%':''}</span>` : '—'}</td>
+    </tr>`).join('');
+  return `<div class="page-head"><div><h1>Trainings</h1>
+    <p class="sub">The 17 live decks. Content and URLs are untouched — only attempts are recorded.</p></div></div>
+  <div class="filters"><div class="chip-row">${chips}</div></div>
+  ${card('All trainings','lowest completion first', `<div class="tbl-wrap"><table>
+    <thead><tr><th>Training</th><th class="r">Started</th><th class="r">Completed</th><th>Completion</th>
+      <th class="r">Avg score</th><th class="r">Avg time</th><th>Weakest skill</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`)}`;
+}
+
+function pageSkills(q){
+  const sel = q.get('skill');
+  const chips = [['','All skills'], ...A.skills.map(s => [s.k, s.name])]
+    .map(([v,l]) => `<button class="chip" aria-pressed="${(sel||'')===v}" data-go="#/skills${v?`?skill=${v}`:''}">${esc(l)}</button>`).join('');
+  const skillRows = A.skills.map(s => rankRow({
+    label:s.name, sub:`${s.staff} staff answered`, pct:s.pct, n:s.n, href:`#/skills?skill=${s.k}` })).join('');
+  const qs = A.questions.filter(x => !sel || x.skill === sel);
+  const qRows = qs.map(x => rankRow({
+    label:`${x.id} · ${x.t.slice(0,64)}${x.t.length>64?'…':''}`, sub:SKILLS[x.skill],
+    pct:x.wrongPct, n:x.n, href:`#/skills?${sel?`skill=${sel}&`:''}q=${x.id}`,
+    right:`${x.wrongPct}%<small>wrong</small>` })).join('');
+  return `<div class="page-head"><div><h1>Skills &amp; Questions</h1>
+    <p class="sub">Start with the skill, land on the question that proves it.</p></div></div>
+  <div class="filters"><div class="chip-row">${chips}</div></div>
+  ${card('Accuracy by skill','lowest first', `<div class="rank">${skillRows}</div>`)}
+  <div style="height:16px"></div>
+  ${card(sel ? `Questions · ${SKILLS[sel]}` : 'All questions', `${qs.length} questions · % answering incorrectly`,
+    qs.length ? `<div class="rank">${qRows}</div>` : `<p class="empty">No answers recorded for this skill yet.</p>`)}`;
+}
+
+function pageStaff(id){
+  const s = A.staff.find(x => x.id === id);
+  if (!s) return `<p class="empty">Staff member not found.</p>`;
+  const mine = answers.filter(a => a.staff === id);
+  const bySkill = Object.keys(SKILLS).map(k => {
+    const rows = mine.filter(a => QBY[a.q].skill === k);
+    return { k, name:SKILLS[k], n:rows.length, pct: rows.length ? Math.round(rows.filter(a=>a.ok).length/rows.length*100) : null };
+  }).filter(x => x.n).sort((a,b) => a.pct - b.pct);
+
+  const wrong = mine.filter(a => !a.ok);
+  const grouped = bySkill.map(sk => {
+    const list = wrong.filter(a => QBY[a.q].skill === sk.k);
+    if (!list.length) return '';
+    const items = [...new Set(list.map(a => a.q))].map(qid => {
+      const qq = QBY[qid], picked = list.filter(a => a.q === qid);
+      return `<button class="rank-row click" data-go="#/skills?q=${qid}" style="grid-template-columns:1fr auto">
+        <span class="lbl">${qid} · ${esc(qq.t.slice(0,66))}${qq.t.length>66?'…':''}</span>
+        <span class="val num" style="min-width:auto;color:var(--crit-ink)">×${picked.length}</span></button>`;
+    }).join('');
+    return `<p class="sec-title">${esc(sk.name)} — ${list.length} wrong</p><div class="rank">${items}</div>`;
+  }).join('');
+
+  const hist = attempts.filter(a => a.staff === id).sort((a,b) => b.startedAt - a.startedAt).map(a => {
+    const t = TBY[a.training], ans = mine.filter(x => x.training === a.training);
+    const sc = ans.length ? Math.round(ans.filter(x=>x.ok).length/ans.length*100) : null;
+    return `<tr class="click" data-go="#/trainings/${t.id}">
+      <td><b style="font-weight:500">${esc(t.title)}</b></td>
+      <td>${a.complete ? '<span class="pill good">Completed</span>' : '<span class="pill warn">In progress</span>'}</td>
+      <td class="r num">${sc == null ? '—' : (ans.length < T.minN ? `n=${ans.length}` : sc + '%')}</td>
+      <td class="r num" style="color:var(--ink-2)">${dur(a.ms)}</td>
+      <td class="r" style="color:var(--ink-3)">${new Date(a.startedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</td>
+    </tr>`;
+  }).join('');
+
+  return `<div class="page-head"><div style="display:flex;gap:14px;align-items:center">
+      <span class="av" style="width:44px;height:44px;font-size:15px">${esc(initials(s.name))}</span>
+      <div><h1>${esc(s.name)}</h1><p class="sub">${esc(s.office)} office · ${s.atRisk ? 'flagged at risk' : 'on track'}</p></div>
+    </div></div>
+  <div class="kv" style="margin-bottom:16px">
+    <div><div class="k">Completed</div><div class="v">${s.done}<span style="font-size:14px;color:var(--ink-3)">/17</span></div></div>
+    <div><div class="k">Completion</div><div class="v">${s.completion}%</div></div>
+    <div><div class="k">Avg score</div><div class="v">${showPct(s.score,s.n) == null ? `n=${s.n}` : s.score + '%'}</div></div>
+    <div><div class="k">Questions answered</div><div class="v">${s.n}</div></div>
+    <div><div class="k">Wrong</div><div class="v">${wrong.length}</div></div>
+    <div><div class="k">Total time</div><div class="v" style="font-size:18px">${dur(s.ms)}</div></div>
+  </div>
+  <div class="grid-2">
+    ${card('Accuracy by skill','their weakest first',
+      `<div class="rank">${bySkill.map(x => rankRow({label:x.name, pct:x.pct, n:x.n, href:`#/skills?skill=${x.k}`})).join('')}</div>`)}
+    ${card('Wrong answers','grouped by skill, not a raw list',
+      grouped || `<p class="empty">No incorrect answers recorded.</p>`)}
+  </div>
+  ${card('Training history', `${attempts.filter(a=>a.staff===id).length} opened`, `<div class="tbl-wrap"><table>
+    <thead><tr><th>Training</th><th>Status</th><th class="r">Score</th><th class="r">Time</th><th class="r">Started</th></tr></thead>
+    <tbody>${hist || `<tr><td colspan="5"><p class="empty">Nothing opened yet.</p></td></tr>`}</tbody></table></div>`)}`;
+}
+
+function pageTraining(id){
+  const t = A.trainings.find(x => x.id === id);
+  if (!t) return `<p class="empty">Training not found.</p>`;
+  const rows = answers.filter(a => a.training === id);
+  const qStats = TBY[id].qs.map(qid => {
+    const r = rows.filter(a => a.q === qid);
+    const wrongPct = r.length ? Math.round(r.filter(a => !a.ok).length / r.length * 100) : null;
+    return { qid, n:r.length, wrongPct };
+  }).sort((a,b) => (b.wrongPct ?? -1) - (a.wrongPct ?? -1));
+  const skillRows = Object.entries(
+    rows.reduce((m,a) => { const k = QBY[a.q].skill; (m[k] ||= {r:0,n:0}); m[k].n++; if(a.ok) m[k].r++; return m; }, {})
+  ).map(([k,v]) => ({ k, pct:Math.round(v.r/v.n*100), n:v.n })).sort((a,b) => a.pct - b.pct);
+
+  const who = A.staff.map(s => ({ s, st:A.cell(s.id, id) }));
+  const notStarted = who.filter(x => x.st === 'none');
+
+  return `<div class="page-head"><div><h1>${esc(t.title)}</h1>
+    <p class="sub">${esc(t.sub)} · deck content unchanged — <a href="https://${esc(t.slug)}-2kezckbdvq-ew.a.run.app/" target="_blank" rel="noopener">open the live deck ↗</a></p></div></div>
+  <div class="kv" style="margin-bottom:16px">
+    <div><div class="k">Started</div><div class="v">${t.started}</div></div>
+    <div><div class="k">Completed</div><div class="v">${t.done}</div></div>
+    <div><div class="k">Completion</div><div class="v">${t.completion}%</div></div>
+    <div><div class="k">Avg score</div><div class="v">${showPct(t.score,t.n) == null ? `n=${t.n}` : t.score + '%'}</div></div>
+    <div><div class="k">Avg time</div><div class="v" style="font-size:18px">${t.avgMs ? dur(t.avgMs) : '—'}</div></div>
+    <div><div class="k">Not started</div><div class="v">${notStarted.length}</div></div>
+  </div>
+  <div class="grid-2">
+    ${card('Most missed questions','in this deck', `<div class="rank">${qStats.map(x => rankRow({
+        label:`${x.qid} · ${QBY[x.qid].t.slice(0,52)}…`, sub:SKILLS[QBY[x.qid].skill],
+        pct:x.wrongPct ?? 0, n:x.n, href:`#/skills?q=${x.qid}`,
+        right:x.n < T.minN ? `<span style="color:var(--ink-3)">n=${x.n}</span>` : `${x.wrongPct}%<small>wrong</small>`
+      })).join('')}</div>`)}
+    ${card('Weakest skills','within this deck', `<div class="rank">${skillRows.map(x => rankRow({
+        label:SKILLS[x.k], pct:x.pct, n:x.n, href:`#/skills?skill=${x.k}` })).join('')}</div>`)}
+  </div>
+  ${card('Who has not started', `${notStarted.length} of ${STAFF.length}`,
+    notStarted.length
+      ? `<div class="namelist">${notStarted.map(x => `<button class="namechip" data-go="#/team/${x.s.id}">${avatar(x.s.name)}${esc(x.s.name)}</button>`).join('')}</div>`
+      : `<p class="empty">Everyone has opened this training.</p>`)}`;
+}
+
+/* ---------- question panel ---------- */
+function openPanel(qid){
+  const q = A.questions.find(x => x.id === qid);
+  const el = document.getElementById('panel'), sc = document.getElementById('scrim');
+  if (!q) return;
+  const total = q.chosen.reduce((a,b) => a + b, 0);
+  const wrongCounts = q.chosen.map((c,i) => i === q.c ? -1 : c);
+  const topWrong = wrongCounts.indexOf(Math.max(...wrongCounts));
+  const opts = q.o.map((o,i) => {
+    const n = q.chosen[i], p = total ? Math.round(n / total * 100) : 0;
+    const cls = i === q.c ? 'correct' : (i === topWrong && n > 0 ? 'top-wrong' : '');
+    return `<div class="opt ${cls}">
+      <span class="key">${'ABCD'[i]}</span>
+      <span class="txt">${esc(o)}${i === q.c ? ' <b style="color:var(--good-ink)">· correct</b>' : ''}</span>
+      <span class="pct num">${p}%</span>
+      <span class="obar"><i style="width:${p}%"></i></span>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div class="panel-head">
+      <div><span class="tag">${esc(SKILLS[q.skill])}</span>
+        <h3 style="margin-top:8px">${esc(q.id)}</h3></div>
+      <button class="x" data-close aria-label="Close">×</button>
+    </div>
+    <div class="panel-body">
+      <p style="font-size:15px;font-weight:500;margin:0 0 18px;text-wrap:balance">${esc(q.t)}</p>
+      <div class="kv" style="margin-bottom:20px">
+        <div><div class="k">Answered wrong</div><div class="v" style="color:var(--crit-ink)">${q.wrongPct}%</div></div>
+        <div><div class="k">Answers</div><div class="v">${q.n}</div></div>
+        <div><div class="k">Avg time</div><div class="v" style="font-size:18px">${Math.round(q.avgMs/1000)}s</div></div>
+      </div>
+      <p class="sec-title">What they picked</p>
+      ${opts}
+      <p class="note" style="border:0;padding:8px 0 0"><b>Coaching cue:</b>
+        ${q.wrongStaff.length ? `the most common wrong answer is <b>${'ABCD'[topWrong]}</b> — “${esc(q.o[topWrong])}”.` : 'no incorrect answers recorded.'}</p>
+      <p class="sec-title">Got it wrong (${q.wrongStaff.length})</p>
+      <div class="namelist">${q.wrongStaff.length
+        ? q.wrongStaff.map(id => `<button class="namechip" data-go="#/team/${id}">${avatar(SBY[id].name)}${esc(SBY[id].name)}</button>`).join('')
+        : '<span style="color:var(--ink-3);font-size:13px">Nobody — this one is landing.</span>'}</div>
+      <p class="sec-title">Appears in</p>
+      <div class="namelist">${q.inTrainings.map(t =>
+        `<button class="namechip" data-go="#/trainings/${t}" style="padding-left:10px">${esc(TBY[t].title)}</button>`).join('')}</div>
+    </div>`;
+  el.hidden = false; sc.hidden = false;
+  requestAnimationFrame(() => { el.classList.add('on'); sc.classList.add('on'); });
+}
+function closePanel(){
+  const el = document.getElementById('panel'), sc = document.getElementById('scrim');
+  el.classList.remove('on'); sc.classList.remove('on');
+  setTimeout(() => { el.hidden = true; sc.hidden = true; }, 200);
+  const u = new URL(location.href); const h = u.hash.split('?');
+  const p = new URLSearchParams(h[1] || ''); p.delete('q');
+  location.replace(h[0] + (p.toString() ? '?' + p : ''));
+}
+
+/* ---------- router ---------- */
+const NAV = [
+  ['#/',          'Overview',           () => ''],
+  ['#/team',      'Team',               () => STAFF.length],
+  ['#/trainings', 'Trainings',          () => TRAININGS.length],
+  ['#/skills',    'Skills & Questions', () => A.questions.length]
+];
+function render(){
+  const raw = location.hash || '#/';
+  const [path, qs] = raw.split('?');
+  const q = new URLSearchParams(qs || '');
+  const seg = path.replace(/^#\/?/, '').split('/').filter(Boolean);
+  const root = '#/' + (seg[0] || '');
+
+  document.getElementById('nav').innerHTML =
+    `<div class="nav-label">Manager</div>` + NAV.map(([h,l,c]) =>
+      `<a href="${h}" ${root === h || (h === '#/' && !seg.length) ? 'aria-current="page"' : ''}>${l}
+        <span class="cnt">${c()}</span></a>`).join('');
+
+  let html = '', crumbs = [];
+  if (!seg.length)                    { html = pageOverview();          crumbs = [['Overview']]; }
+  else if (seg[0] === 'team' && seg[1]) {
+    const s = SBY[seg[1]];
+    html = pageStaff(seg[1]);         crumbs = [['Team','#/team'], [s ? s.name : 'Unknown']];
+  }
+  else if (seg[0] === 'team')         { html = pageTeam(q);             crumbs = [['Team']]; }
+  else if (seg[0] === 'trainings' && seg[1]) {
+    const t = TBY[seg[1]];
+    html = pageTraining(seg[1]);      crumbs = [['Trainings','#/trainings'], [t ? t.title : 'Unknown']];
+  }
+  else if (seg[0] === 'trainings')    { html = pageTrainings(q);        crumbs = [['Trainings']]; }
+  else if (seg[0] === 'skills')       { html = pageSkills(q);
+    crumbs = [['Skills & Questions','#/skills']];
+    if (q.get('skill')) crumbs.push([SKILLS[q.get('skill')]]);
+  }
+  else                                { html = pageOverview();          crumbs = [['Overview']]; }
+
+  document.getElementById('page').innerHTML = html;
+  document.getElementById('crumbs').innerHTML =
+    crumbs.map((c,i) =>
+      (c[1] && i < crumbs.length - 1)
+        ? `<a href="${c[1]}">${esc(c[0])}</a><span class="sep">/</span>`
+        : `<span class="now">${esc(c[0])}</span>`).join('');
+
+  if (q.get('q')) openPanel(q.get('q')); else closePanelSilently();
+  window.scrollTo({ top:0 });
+}
+function closePanelSilently(){
+  const el = document.getElementById('panel'), sc = document.getElementById('scrim');
+  if (el.hidden) return;
+  el.classList.remove('on'); sc.classList.remove('on');
+  setTimeout(() => { el.hidden = true; sc.hidden = true; }, 200);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const go = e.target.closest('[data-go]');
+  if (go) { location.hash = go.dataset.go.replace(/^#/, ''); return; }
+  if (e.target.closest('[data-close]') || e.target.id === 'scrim') closePanel();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+window.addEventListener('hashchange', render);
+
+/* tooltips */
+const tip = document.getElementById('tip');
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest('[data-tip]');
+  if (!el) return;
+  tip.textContent = el.dataset.tip; tip.classList.add('on');
+  const move = ev => {
+    const x = Math.min(ev.clientX + 14, innerWidth - tip.offsetWidth - 8);
+    tip.style.left = x + 'px';
+    tip.style.top = Math.max(8, ev.clientY - tip.offsetHeight - 10) + 'px';
+  };
+  move(e);
+  el.addEventListener('mousemove', move);
+  el.addEventListener('mouseleave', () => { tip.classList.remove('on'); el.removeEventListener('mousemove', move); }, { once:true });
+});
+
+/* theme toggle */
+const tb = document.getElementById('themeBtn');
+const dark = () => document.documentElement.getAttribute('data-theme') === 'dark'
+  || (!document.documentElement.hasAttribute('data-theme') && matchMedia('(prefers-color-scheme: dark)').matches);
+const syncBtn = () => tb.textContent = dark() ? 'Light' : 'Dark';
+tb.addEventListener('click', () => {
+  document.documentElement.setAttribute('data-theme', dark() ? 'light' : 'dark');
+  syncBtn();
+});
+syncBtn();
+
+render();
+</script>
