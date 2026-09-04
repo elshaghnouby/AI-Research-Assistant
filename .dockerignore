@@ -1,0 +1,8 @@
+.git
+data/
+deck_dumps/
+deck-report.json
+prototype/
+__pycache__/
+*.pyc
+*.db

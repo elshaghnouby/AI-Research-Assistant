@@ -104,9 +104,25 @@ skill. The tagging lives here, never in the deck.
 Until real events arrive, the dashboard carries a **Sample data** badge, driven
 by the `is_sample` flag on the seeded rows.
 
-## Deploying
+## Deploying — get a real URL
 
 The app is a single FastAPI service and deploys to Cloud Run the same way the
-decks do. Set `DATABASE_URL` to a managed Postgres instance, set
-`MANAGER_PASSWORD`, and serve behind HTTPS — then flip the session cookie to
+decks do. From the repo root:
+
+```bash
+gcloud run deploy sales-training \
+  --source . --region europe-west1 --allow-unauthenticated \
+  --set-env-vars SEED_ON_START=1,SEED_SAMPLE=1,MANAGER_PASSWORD=choose-one
+```
+
+Cloud Run prints an `https://…run.app` URL. Open it and sign in with
+`manager@baroncabot.example` and the password you set.
+
+`SEED_ON_START` only ever fills an **empty** database, so a redeploy cannot
+overwrite real training data. Drop `SEED_SAMPLE` once real answers start
+arriving, and drop `SEED_ON_START` after the first successful boot.
+
+**Cloud Run's filesystem is ephemeral**, so the default SQLite database resets
+whenever the service restarts. Fine for a trial; before staff use it for real,
+set `DATABASE_URL` to a managed Postgres instance and flip the session cookie to
 `secure=True` in `auth.py`.

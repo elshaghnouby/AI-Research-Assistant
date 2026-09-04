@@ -8,6 +8,7 @@ Routes fall into four groups:
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
@@ -33,6 +34,34 @@ app.include_router(proxy_router)
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
+    if os.getenv("SEED_ON_START") == "1":
+        _seed_if_empty()
+
+
+def _seed_if_empty() -> None:
+    """First boot on a fresh deployment: create the 17 decks and a manager.
+
+    Only ever runs against an empty database, so a redeploy never overwrites
+    real training data. SEED_SAMPLE=1 also loads the demo event log.
+    """
+    from .db import session
+    from .seed import seed_questions, seed_sample, seed_trainings
+
+    db = session()
+    try:
+        if db.scalar(select(Training.id)):
+            return
+        trainings = seed_trainings(db)
+        layout = seed_questions(db, trainings)
+        email = os.getenv("MANAGER_EMAIL", "manager@baroncabot.example")
+        password = os.getenv("MANAGER_PASSWORD")
+        if password:
+            A.create_staff(db, name="Sales Manager", email=email,
+                           password=password, office="Head Office", role="manager")
+        if os.getenv("SEED_SAMPLE") == "1":
+            seed_sample(db, trainings, layout)
+    finally:
+        db.close()
 
 
 # --------------------------------------------------------------------------- auth
